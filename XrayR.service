@@ -14,6 +14,7 @@ LimitNOFILE=999999
 WorkingDirectory=/usr/local/XrayR/
 ExecStart=/usr/local/XrayR/XrayR --config /etc/XrayR/config.yml
 Restart=on-failure
+Environment="XRAY_VMESS_AEAD_FORCED=false"
 RestartSec=10
 
 [Install]
