@@ -83,6 +83,32 @@ install_base() {
     fi
 }
 
+configure_journald_retention() {
+    local config_dir="/etc/systemd/journald.conf.d"
+    local config_file="${config_dir}/99-XrayR-retention.conf"
+    local desired_config=$'[Journal]\nMaxFileSec=1day\nMaxRetentionSec=3day\n'
+    local tmp_file
+
+    mkdir -p "${config_dir}"
+    tmp_file=$(mktemp)
+    printf '%s' "${desired_config}" > "${tmp_file}"
+
+    if [[ -f "${config_file}" && "$(<"${config_file}")" == "${desired_config%$'\n'}" ]]; then
+        rm -f "${tmp_file}"
+        echo -e "${green}系统日志保留时间已设置为 3 天${plain}"
+    else
+        chmod 0644 "${tmp_file}"
+        mv -f "${tmp_file}" "${config_file}"
+        if systemctl restart systemd-journald; then
+            echo -e "${green}系统日志保留时间已设置为 3 天${plain}"
+        else
+            echo -e "${yellow}系统日志保留配置已写入，但重启 systemd-journald 失败，将在下次启动时生效${plain}"
+        fi
+    fi
+
+    journalctl --vacuum-time=3d >/dev/null
+}
+
 # 0: running, 1: not running, 2: not installed
 check_status() {
     if [[ ! -f /etc/systemd/system/XrayR.service ]]; then
@@ -209,5 +235,6 @@ install_XrayR() {
 
 echo -e "${green}开始安装${plain}"
 install_base
+configure_journald_retention
 # install_acme
 install_XrayR $1
